@@ -1,0 +1,30 @@
+{
+  "name": "security_camera_server",
+  "version": "1.0.0",
+  "description": "The server that my security camera program will stream to",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rishavb123/SecurityCamera.git"
+  },
+  "keywords": [
+    "security",
+    "camera",
+    "socketio",
+    "server",
+    "image",
+    "opencv"
+  ],
+  "author": "Bhagat",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/rishavb123/SecurityCamera/issues"
+  },
+  "homepage": "https://github.com/rishavb123/SecurityCamera#readme",
+  "dependencies": {
+    "express": "^4.17.1"
+  }
+}
