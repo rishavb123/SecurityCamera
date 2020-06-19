@@ -1,5 +1,8 @@
 import numpy as np
 import cv2
+import base64
+import socketio
+import time
 
 from drawing import draw_border
 from colors import GREEN, BLUE, ORANGE, to_bgr_from_rgb
@@ -8,6 +11,21 @@ from config import MOTION_THRESHOLDS, RUNNING_AVERAGE_LENGTH
 classifier = cv2.CascadeClassifier('./haarcascade_frontalface_default.xml')
 
 cap = cv2.VideoCapture(0)
+sio = socketio.Client()
+
+@sio.event
+def connect():
+    print("I'm connected!")
+
+@sio.event
+def connect_error():
+    print("The connection failed!")
+
+@sio.event
+def disconnect():
+    print("I'm disconnected!")
+
+sio.connect('http://localhost:3000')
 
 old, frame = cap.read()
 
@@ -52,7 +70,12 @@ while True:
         draw_border(img, (x, y), (x + w, y + h), to_bgr_from_rgb(GREEN), 3, 10, 20)
         draw_border(img2, (x, y), (x + w, y + h), to_bgr_from_rgb(BLUE), 3, 10, 20)
 
-    cv2.imshow('frame', np.concatenate((img, img2), axis=1))
+    final = np.concatenate((img, img2), axis=1)
+
+    encoded_final = str(base64.b64encode(cv2.imencode('.jpg', final)[1].tobytes()))[2:-1]
+    sio.emit('frame', encoded_final)
+
+    # cv2.imshow('frame', final)
 
     if cv2.waitKey(1) & 0xFF in [ord('q'), 27]:
         break
