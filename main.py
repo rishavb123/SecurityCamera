@@ -2,8 +2,8 @@ import numpy as np
 import cv2
 
 from drawing import draw_border
-from colors import GREEN, BLUE, to_bgr_from_rgb
-from config import MOTION_THRESHOLD
+from colors import GREEN, BLUE, ORANGE, to_bgr_from_rgb
+from config import MOTION_THRESHOLDS, RUNNING_AVERAGE_LENGTH
 
 classifier = cv2.CascadeClassifier('./haarcascade_frontalface_default.xml')
 
@@ -11,20 +11,39 @@ cap = cv2.VideoCapture(0)
 
 old, frame = cap.read()
 
+motion_levels = []
+
 while True:
     ret, frame = cap.read()
 
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     faces = classifier.detectMultiScale(gray)
 
-    img = cv2.subtract(old, frame)
-    _, img = cv2.threshold(img, 30, 255, cv2.THRESH_BINARY)
+    img = cv2.absdiff(old, gray)
+    old = gray
+    img = cv2.threshold(img, 30, 255, cv2.THRESH_BINARY)[1]
+    img = cv2.dilate(img, None, iterations=2)
+
+    cnts, hierarchy = cv2.findContours(img.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cv2.drawContours(img, cnts, -1, to_bgr_from_rgb(ORANGE))
+
     img2 = frame.copy()
 
     diff = np.linalg.norm(img)
 
-    if diff > MOTION_THRESHOLD:
-        print("Motion Number: ", diff)
+    motion_level = 0
+
+    for threshold in MOTION_THRESHOLDS:
+        if diff > threshold: 
+            motion_level += 1
+        else:
+            break
+
+    motion_levels.append(motion_level)
+
+    print('Motion Level:', '[' + '+' * motion_level + ' ' * (len(MOTION_THRESHOLDS) - motion_level) + ']', motion_level, '/',  len(MOTION_THRESHOLDS), '\tRunning Average: ', sum(motion_levels[-RUNNING_AVERAGE_LENGTH:]) / min(len(motion_levels), RUNNING_AVERAGE_LENGTH))
+
+    img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
 
     if len(faces) > 0:
         faces = sorted(faces, key=lambda face: -face[2] * face[3])
@@ -34,8 +53,6 @@ while True:
         draw_border(img2, (x, y), (x + w, y + h), to_bgr_from_rgb(BLUE), 3, 10, 20)
 
     cv2.imshow('frame', np.concatenate((img, img2), axis=1))
-
-    old = frame
 
     if cv2.waitKey(1) & 0xFF in [ord('q'), 27]:
         break
